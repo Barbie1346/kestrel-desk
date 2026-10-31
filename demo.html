@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DEMO — AI Front Desk for "Summit Peak Heating & Air" (fictional)</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#EEF1F4;color:#16202A}
+.banner{background:#E08A2B;color:#fff;text-align:center;padding:8px;font-size:14px}
+.site{max-width:900px;margin:30px auto;padding:0 20px}.site h1{margin:0}.site p{color:#5B6672}
+#chat{position:fixed;right:20px;bottom:20px;width:min(380px,calc(100vw - 40px));height:560px;max-height:calc(100vh - 60px);background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+#hd{background:#16202A;color:#fff;padding:14px 16px;font-weight:700}#hd small{display:block;font-weight:400;color:#C9D1D9}
+#log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;font-size:14px}.bot{background:#F1F3F5;align-self:flex-start}.me{background:#E08A2B;color:#fff;align-self:flex-end}
+.opts{display:flex;flex-wrap:wrap;gap:6px}.opts button{border:1px solid #E08A2B;background:#fff;color:#16202A;border-radius:16px;padding:6px 10px;cursor:pointer;font-size:13px}
+#in{display:flex;border-top:1px solid #E3E0DA}#in input{flex:1;border:0;padding:12px;font-size:14px;outline:none}#in button{border:0;background:#16202A;color:#fff;padding:0 16px;cursor:pointer}
+.card{background:#FFF7EE;border:1px solid #E08A2B;border-radius:10px;padding:10px;font-size:13px}
+</style></head><body>
+<div class="banner">Demo by Kestrel Desk. "Summit Peak Heating & Air" is a FICTIONAL company. Nothing you type is sent anywhere — it stays in this browser tab.</div>
+<div class="site"><h1>Summit Peak Heating & Air</h1><p>Fictional HVAC company · Serving the Springfield metro area · Mon–Fri 7am–6pm, Sat 8am–2pm · 24/7 emergency line</p>
+<p>Try asking: "Do you service 62704?", "How much is a call-out?", "My furnace stopped working", "Can I book a tune-up Saturday?"</p></div>
+<div id="chat"><div id="hd">Summit Peak Assistant<small>Usually answers instantly · Demo</small></div><div id="log"></div>
+<div id="in"><input id="t" placeholder="Type a message…" aria-label="message"><button id="send">Send</button></div></div>
+<script>
+const KB={zips:["62701","62702","62703","62704","62707","62711","62712"],
+ fee:"Our diagnostic call-out fee is $89 (fictional), waived if you go ahead with the repair. Exact repair prices are confirmed on site.",
+ hours:"Office hours: Mon–Fri 7am–6pm, Sat 8am–2pm, closed Sunday. The emergency line runs 24/7, including Sundays.",
+ services:"We handle furnace & AC repair, installs and replacements, seasonal tune-ups, heat pumps, thermostats and indoor air quality.",
+ slots:["Mon 9:00–11:00","Mon 13:00–15:00","Tue 8:00–10:00","Wed 15:00–17:00","Sat 8:00–10:00"]};
+const log=document.getElementById('log'),t=document.getElementById('t');let state=null,lead={};
+function add(txt,who){const d=document.createElement('div');d.className='m '+who;d.textContent=txt;log.appendChild(d);log.scrollTop=1e9}
+function opts(list){const w=document.createElement('div');w.className='opts';list.forEach(o=>{const b=document.createElement('button');b.textContent=o;b.onclick=()=>{w.remove();user(o)};w.appendChild(b)});log.appendChild(w);log.scrollTop=1e9}
+function bot(txt,o){setTimeout(()=>{add(txt,'bot');if(o)opts(o)},350)}
+function start(){bot("Hi! I'm the Summit Peak assistant. How can I help today?",["🔥 Emergency (no heat / no cool)","📅 Book a service","💲 Prices","📍 Do you cover my area?","🕒 Hours"])}
+const EMERG=/(no heat|not heating|stopped working|no cool|not cooling|gas smell|smell gas|carbon monoxide|co alarm|emergency|burst|leak|smoke|sparking)/i;
+function user(txt){document.querySelectorAll('#log .opts').forEach(o=>o.remove());add(txt,'me');route(txt)}
+function route(x){
+ if(/gas smell|smell gas|carbon monoxide|co alarm/i.test(x)){bot("⚠️ If you smell gas or a CO alarm is sounding: leave the building now and call 911 / your gas utility from outside. Do not use switches or flames. Once you're safe, call our 24/7 line and we'll come out.");state=null;return}
+ if(state){return flow(x)}
+ if(EMERG.test(x)||/^🔥/.test(x)){lead.type="EMERGENCY";bot("Sorry you're dealing with that. For urgent help call the 24/7 emergency line now (the real number appears here in a live version).\nI can also alert the on-call technician. What's your name?");state="name";return}
+ if(/price|cost|how much|fee|charge|💲/i.test(x)){bot(KB.fee,["📅 Book a service","Ask something else"]);return}
+ const z=x.match(/\b\d{5}\b/);if(z){bot(KB.zips.includes(z[0])?`Yes — ${z[0]} is in our service area. Want to book a visit?`:`Sorry, ${z[0]} is outside our regular area. I can pass your details to the office to check if we can make an exception.`,["📅 Book a service"]);return}
+ if(/book|appointment|tune|schedule|come out|install|quote|estimate|📅/i.test(x)){lead.type="BOOKING";bot("Happy to get you booked. What do you need?",["Furnace/AC repair","Seasonal tune-up","New system quote","Something else"]);state="job";return}
+ if(/area|cover|zip|service.*(in|near)|📍/i.test(x)){bot("What's your ZIP code?");return}
+ if(/hour|open|close|weekend|saturday|sunday|🕒/i.test(x)){bot(KB.hours);return}
+ if(/what.*do|services|offer|heat pump|thermostat/i.test(x)){bot(KB.services);return}
+ if(/ask something else/i.test(x)){bot("Sure — what would you like to know?");return}
+ bot("I'm not sure about that one, and I don't want to guess. I can have someone from the office get back to you — want me to take your details?",["Yes, take my details","No thanks"]);state="handoff"}
+function flow(x){
+ if(state==="handoff"){if(/yes/i.test(x)){lead.type="CALLBACK";bot("Great. What's your name?");state="name"}else{state=null;bot("No problem. Anything else?")}return}
+ if(state==="job"){lead.job=x;bot("Got it. What's your name?");state="name";return}
+ if(state==="name"){if(!/[a-z]{2}/i.test(x)){bot("Sorry, what name should the technician ask for?");return}lead.name=x;bot("Thanks "+x.split(" ")[0]+". Best phone number?");state="phone";return}
+ if(state==="phone"){if(!/\d{3}.*\d{3}.*\d{3,4}/.test(x)){bot("That doesn't look like a full phone number — could you re-enter it?");return}lead.phone=x;bot("And the ZIP code for the property?");state="zip";return}
+ if(state==="zip"){lead.zip=x;if(!KB.zips.includes((x.match(/\d{5}/)||[""])[0]))lead.note="Outside usual area — office to confirm";
+  if(lead.type==="EMERGENCY"){lead.issue="Urgent: see chat";return done("I've alerted the on-call technician (demo) — they'll call you within 15 minutes. If it's getting worse, call the 24/7 line now.")}
+  if(lead.type==="CALLBACK"){return done("Thanks — the office will call you back next business day.")}
+  bot("Briefly, what's happening? (e.g. 'AC blowing warm air', 'annual tune-up')");state="issue";return}
+ if(state==="issue"){lead.issue=x;bot("Here are the next open slots (demo):",KB.slots);state="slot";return}
+ if(state==="slot"){const pick=KB.slots.find(z=>x.toLowerCase().includes(z.toLowerCase().slice(0,3))&&x.includes(z.split(' ')[1].slice(0,2)))||KB.slots.find(z=>z===x);if(!pick){bot("Please pick one of these open slots, or say 'call me' and the office will arrange a time:",KB.slots);if(/call me/i.test(x)){state=null;return done("No problem — the office will call you to arrange a time.")}return}x=pick;lead.slot=x;return done(`You're booked for ${x}. You'll get a confirmation text and a reminder the day before (demo).`)}
+}
+function done(msg){state=null;bot(msg);setTimeout(()=>{const c=document.createElement('div');c.className='card';c.textContent="WHAT THE OWNER RECEIVES (demo)\n"+Object.entries(lead).map(([k,v])=>`${k}: ${v}`).join("\n")+"\nlogged: "+new Date().toLocaleString()+"\n→ email alert + row added to lead sheet";c.style.whiteSpace="pre-wrap";log.appendChild(c);log.scrollTop=1e9;lead={}},700)}
+document.getElementById('send').onclick=()=>{if(t.value.trim()){user(t.value.trim());t.value=''}};
+t.addEventListener('keydown',e=>{if(e.key==='Enter'&&t.value.trim()){user(t.value.trim());t.value=''}});
+start();
+</script></body></html>
