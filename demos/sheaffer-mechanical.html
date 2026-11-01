@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>DEMO: AI Front Desk preview for Sheaffer Mechanical (prepared by Kestrel Desk)</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#EEF1F4;color:#16202A}
+.banner{background:#E08A2B;color:#fff;text-align:center;padding:8px 12px;font-size:14px}
+.site{max-width:900px;margin:30px auto;padding:0 20px 600px}.site h1{margin:0 0 6px}.site p{color:#5B6672;line-height:1.5}
+.site ul{color:#5B6672;line-height:1.6}
+#chat{position:fixed;right:20px;bottom:20px;width:min(380px,calc(100vw - 40px));height:560px;max-height:calc(100vh - 60px);background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+#hd{background:#0F2A44;color:#fff;padding:14px 16px;font-weight:700}#hd small{display:block;font-weight:400;color:#C9D1D9}
+#log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;font-size:14px}.bot{background:#F1F3F5;align-self:flex-start}.me{background:#0F2A44;color:#fff;align-self:flex-end}
+.opts{display:flex;flex-wrap:wrap;gap:6px}.opts button{border:1px solid #0F2A44;background:#fff;color:#16202A;border-radius:16px;padding:6px 10px;cursor:pointer;font-size:13px}
+#in{display:flex;border-top:1px solid #E3E0DA}#in input{flex:1;border:0;padding:12px;font-size:14px;outline:none;min-width:0}#in button{border:0;background:#0F2A44;color:#fff;padding:0 16px;cursor:pointer}
+.card{background:#FFF7EE;border:1px solid #E08A2B;border-radius:10px;padding:10px;font-size:13px;white-space:pre-wrap}
+</style></head><body>
+<div class="banner">Private demo prepared by Kestrel Desk for Sheaffer Mechanical, LLC. Not made or endorsed by Sheaffer Mechanical. Answers use only public info from sheaffermechanical.com (checked 1 Nov 2026). Nothing you type leaves this browser tab.</div>
+<div class="site"><h1>Sheaffer Mechanical: AI front desk preview</h1>
+<p>Family-owned heating, air conditioning, plumbing and electrical in Lancaster, PA, serving most of Lancaster County and parts of York County. 24-hour service calls available. "Service First, Not Sales!"</p>
+<p>This preview shows how a website assistant could answer visitors instantly, walk them through your pre-call checklist, flag no-heat emergencies, and hand the office a complete request, so a website enquiry never sits unanswered. Booking times shown are sample slots, not your real calendar.</p>
+<p>Try asking:</p>
+<ul><li>"My furnace stopped working and it's freezing"</li><li>"Do you cover Lititz?"</li><li>"I'd like a free consultation for a new heat pump"</li><li>"Do you install water softeners?"</li><li>"Are you available at night?"</li></ul></div>
+<div id="chat"><div id="hd">Sheaffer Mechanical Assistant<small>Demo preview · answers instantly</small></div><div id="log"></div>
+<div id="in"><input id="t" placeholder="Type a message…" aria-label="message"><button id="send">Send</button></div></div>
+<script>
+const PHONE="(717) 917-9955",NAME="Sheaffer";
+const KB={core:["lancaster","lititz","lancaster county"],
+ lanco:["ephrata","manheim","elizabethtown","strasburg","millersville","mount joy","columbia","leola","new holland","quarryville","willow street","landisville","akron","denver","marietta","mountville","rothsville","brownstown","bird-in-hand","intercourse","paradise","gap","neffsville","rheems"],
+ york:["york county","york","hanover","wrightsville","red lion","dallastown","hellam","shrewsbury","dover","spring grove"],
+ hours:"Sheaffer offers 24-hour service calls for emergencies. The website doesn't list regular office hours, so for anything that isn't urgent I can take your details and the office will get back to you. For an emergency right now, call "+PHONE+".",
+ price:"Every job is different, so pricing is confirmed with you directly. Sheaffer offers a FREE in-home consultation, and they'll never up-sell you something you don't need. I can take your details now so the office can set it up.",
+ heat:"Heating: repair, replacement and installation of all major brands, including furnaces, heat pumps, boilers, ductless mini-splits and humidifiers.",
+ cool:"Cooling: service and installation of central air conditioners, ductless mini-splits and heat pumps, all major brands.",
+ plumb:"Plumbing: pipe repair, well pumps, pressure tanks, water heaters, kitchen faucets, bathroom fixtures, exterior hookups and water softeners.",
+ elec:"Electrical (residential repairs are a specialty): ceiling fans, chandeliers, generators, hot tubs, dimmers, recessed lighting, service and panel upgrades, sub-panels, GFCI outlets, surge protectors, range hoods and more.",
+ about:"Sheaffer Mechanical, LLC is a small, locally-owned, family-operated business started in 2008 by Ryan Sheaffer, working in the building trades since 1998. Office in Lancaster, PA. 5.0 on Google (61 reviews), 100% satisfaction guarantee on parts and labor, and a repair-first approach: \"Service First, Not Sales!\"",
+ check:"Before you call, Sheaffer's pre-call checklist can save you a service call:\n1. Thermostat: is it on? If it takes batteries, try new ones.\n2. Breakers: check the furnace/AC breaker hasn't tripped.\n3. Filters: a clogged filter can shut a system down.\n4. Kill switch: make sure the furnace service switch is on.\n5. Vent pipes: check outside vent pipes aren't blocked (e.g. by snow).",
+ slots:["Mon 8:00–10:00","Mon 1:00–3:00","Tue 10:00–12:00","Wed 2:00–4:00","Thu 8:00–10:00"]};
+const log=document.getElementById('log'),t=document.getElementById('t');let state=null,lead={};
+function add(txt,who){const d=document.createElement('div');d.className='m '+who;d.textContent=txt;log.appendChild(d);log.scrollTop=1e9}
+function opts(list){const w=document.createElement('div');w.className='opts';list.forEach(o=>{const b=document.createElement('button');b.textContent=o;b.onclick=()=>user(o);w.appendChild(b)});log.appendChild(w);log.scrollTop=1e9}
+let q=0;function bot(txt,o){q++;setTimeout(()=>{add(txt,'bot');if(o)opts(o)},300*q);setTimeout(()=>{q=Math.max(0,q-1)},300*q)}
+function start(){bot("Hi! I'm the Sheaffer Mechanical assistant. How can I help?",["🚨 No heat / urgent","📅 Schedule service","💲 Free consultation","🧰 Pre-call checklist","📍 Do you cover my area?","🕒 Hours"])}
+const GAS=/gas (smell|leak)|smell(s|ing)? (of )?gas|carbon monoxide|co alarm|co detector/i;
+const EMERG=/urgent|emergency|no heat|not heating|furnace (stopped|died|quit|won'?t|not)|boiler (stopped|died|won'?t|not)|freezing|frozen pipe|burst|flood|leak|no water|no hot water|well pump (stopped|died|not)|sparking|burning smell|🚨/i;
+function user(txt){document.querySelectorAll('#log .opts').forEach(o=>o.remove());add(txt,'me');route(txt)}
+function cap(s){return s.replace(/\b\w/g,c=>c.toUpperCase())}
+function find(list,l){return list.find(a=>new RegExp('\\b'+a+'\\b').test(l))}
+function area(x){const l=x.toLowerCase();let a;
+ if(a=find(KB.lanco,l))return{t:cap(a),k:"lanco"};
+ if(!/new york/.test(l)&&(a=find(KB.york,l)))return{t:cap(a),k:"york"};
+ if(a=find(KB.core,l))return{t:cap(a),k:"core"};return null}
+function route(x){
+ if(GAS.test(x)){state=null;lead={};bot("⚠️ If you smell gas or a CO alarm is sounding: get everyone out now, don't use switches or flames, and call 911 or your gas utility from outside. Once everyone is safe, call Sheaffer at "+PHONE+".");return}
+ if(state)return flow(x);
+ if(/checklist|before (i|calling)|troubleshoot|what can i check|🧰/i.test(x)){bot(KB.check+"\nStill not working?",["🚨 No heat / urgent","📅 Schedule service"]);return}
+ if(EMERG.test(x)){lead={type:"URGENT",issue:x};bot("Sorry you're dealing with that. Sheaffer offers 24-hour service calls, so for the fastest help call "+PHONE+" now.\nQuick checks while you wait: thermostat on and batteries good, breaker not tripped, filter not clogged, furnace switch on.\nI can also send your details to the team right away. What's your name?");state="name";return}
+ if(/price|cost|how much|fee|charge|estimate|quote|consult|💲/i.test(x)){lead={type:"FREE CONSULTATION"};bot(KB.price+"\nWhat's it for?",["Furnace / boiler / heat pump","Central AC / mini-split","Plumbing / water heater","Electrical","Something else"]);state="job";return}
+ const a=area(x);if(a){
+  if(a.k==="core")bot("Yes, "+a.t+" is in Sheaffer's service area. Want to schedule a visit?",["📅 Schedule service"]);
+  else if(a.k==="lanco")bot(a.t+" is in Lancaster County, and Sheaffer serves most of the county. The office will confirm your exact address. Want to schedule a visit?",["📅 Schedule service"]);
+  else bot("Sheaffer serves parts of York County, so the office will need to confirm "+a.t+". Want me to take your details?",["📅 Schedule service"]);return}
+ if(/\b17\d{3}\b/.test(x)){bot("Sheaffer serves most of Lancaster County and parts of York County. Which town is that? (e.g. Lancaster, Lititz, Ephrata)");return}
+ if(/repair or replace|replace.*(old|system)|should i replace|new system/i.test(x)){bot("Sheaffer's approach is repair-first: fix what's broken when it's worth it, and replace only when it can't be fixed. They'll lay out every option, pros and cons, with no up-sell. Want a free in-home consultation?",["💲 Free consultation","📅 Schedule service"]);return}
+ if(/book|appointment|schedule|come out|visit|📅/i.test(x)||(/install|replace|repair|fix|service|tune/i.test(x)&&/furnace|heat|boiler|ac\b|a\/c|air condition|mini.?split|humidifier|pipe|water|heater|faucet|fixture|softener|well|pump|tank|electric|panel|outlet|fan|light|generator|hot tub/i.test(x))){lead={type:"SERVICE REQUEST"};bot("Happy to help get that scheduled. What do you need?",["Furnace / boiler / heat pump","Central AC / mini-split","Plumbing / water heater","Electrical","Something else"]);state="job";return}
+ if(/area|cover|serve|near|location|where|📍/i.test(x)){bot("Sheaffer is based in Lancaster, PA and serves most of Lancaster County plus parts of York County. Which town are you in?");return}
+ if(/hour|open|close|weekend|saturday|sunday|after.?hours|night|24|🕒/i.test(x)){bot(KB.hours);return}
+ if(/electric|panel|outlet|gfci|fan|chandelier|generator|hot tub|jacuzzi|dimmer|recessed|surge|wiring/i.test(x)){bot(KB.elec,["📅 Schedule service","💲 Free consultation"]);return}
+ if(/plumb|pipe|well|pressure tank|water heater|faucet|fixture|softener|hookup|toilet/i.test(x)){bot(KB.plumb,["📅 Schedule service","💲 Free consultation"]);return}
+ if(/\bac\b|a\/c|air condition|cooling|central air/i.test(x)){bot(KB.cool,["📅 Schedule service","💲 Free consultation"]);return}
+ if(/furnace|heat|boiler|mini.?split|humidifier|heating/i.test(x)){bot(KB.heat,["📅 Schedule service","💲 Free consultation"]);return}
+ if(/what.*do|services|offer/i.test(x)){bot(KB.heat+"\n"+KB.cool+"\n"+KB.plumb+"\nPlus residential electrical repairs.",["📅 Schedule service","💲 Free consultation"]);return}
+ if(/who|about|family|owner|licen|insur|review|rating|guarantee|upsell|up-sell/i.test(x)){bot(KB.about);return}
+ if(/ask something else|^no thanks/i.test(x)){bot("Sure. What else can I help with?");return}
+ bot("I'm not sure about that one, and I don't want to guess. I can have someone from the Sheaffer office get back to you. Want me to take your details?",["Yes, take my details","No thanks"]);state="handoff"}
+function flow(x){
+ if(state==="handoff"){if(/^yes/i.test(x)){lead={type:"CALLBACK",question:"see chat"};bot("Great. What's your name?");state="name"}else{state=null;bot("No problem. Anything else?")}return}
+ if(state==="job"){lead.job=x;bot("Got it. What's your name?");state="name";return}
+ if(state==="name"){if(!/[a-z]{2}/i.test(x)||/\d{3}/.test(x)){bot("Sorry, what name should the technician ask for?");return}lead.name=x;bot("Thanks "+x.split(" ")[0]+". What's the best phone number?");state="phone";return}
+ if(state==="phone"){if(!/\d{3}\D*\d{3}\D*\d{4}/.test(x)){bot("That doesn't look like a full phone number. Could you re-enter it?");return}lead.phone=x;bot("And what's the address or town for the job?");state="addr";return}
+ if(state==="addr"){lead.address=x;const a=area(x);if(!a||a.k!=="core")lead.note=a?"Town in "+(a.k==="york"?"York":"Lancaster")+" County. Office to confirm coverage.":"Town not recognised as a listed service area. Office to confirm.";
+  if(lead.type==="URGENT")return done("Thanks. I've flagged this as urgent for the on-call technician (demo). If it gets worse, call "+PHONE+" right away.");
+  if(lead.type==="CALLBACK")return done("Thanks. The office will get back to you as soon as they can.");
+  bot("Briefly, what's going on? (e.g. 'furnace short-cycling', 'replace water heater')");state="issue";return}
+ if(state==="issue"){lead.issue=x;if(lead.type==="FREE CONSULTATION")return done("Thanks. The office will contact you to arrange your free in-home consultation.");bot("Here are some sample open times (demo, not the real calendar). Or say 'call me' and the office will arrange a time.",KB.slots);state="slot";return}
+ if(state==="slot"){if(/call me/i.test(x)){lead.slot="Office to call and arrange";return done("No problem. The office will call you to arrange a time.")}
+  const pick=KB.slots.find(z=>z.toLowerCase()===x.toLowerCase())||KB.slots.find(z=>x.toLowerCase().startsWith(z.slice(0,3).toLowerCase())&&x.includes(z.split(' ')[1].split(':')[0]+':'));
+  if(!pick){bot("Please pick one of these times, or say 'call me':",KB.slots);return}
+  lead.slot=pick;return done("You're requested for "+pick+". In a live version you'd get a confirmation text and a reminder the day before.")}
+}
+function done(msg){state=null;const L=lead;lead={};bot(msg);setTimeout(()=>{const c=document.createElement('div');c.className='card';c.textContent="WHAT SHEAFFER RECEIVES (demo)\n"+Object.entries(L).map(([k,v])=>k+": "+v).join("\n")+"\nlogged: "+new Date().toLocaleString()+"\n→ instant email + text alert to the office, row added to the lead sheet";log.appendChild(c);log.scrollTop=1e9},900)}
+document.getElementById('send').onclick=()=>{if(t.value.trim()){user(t.value.trim());t.value=''}};
+t.addEventListener('keydown',e=>{if(e.key==='Enter'&&t.value.trim()){user(t.value.trim());t.value=''}});
+start();
+</script></body></html>
